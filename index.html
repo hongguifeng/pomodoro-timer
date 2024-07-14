@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级番茄钟</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-center mb-8">高级番茄钟</h1>
+        <div class="bg-white shadow-md rounded-lg p-6 mb-8">
+            <div id="timer" class="text-6xl font-bold text-center mb-4">25:00</div>
+            <div class="flex justify-center space-x-4 mb-4">
+                <button id="startButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">开始</button>
+                <button id="resetButton" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">重置</button>
+            </div>
+            <div class="mb-4">
+                <label for="timerDuration" class="block mb-2">设置时间（分钟）：</label>
+                <input type="number" id="timerDuration" min="1" max="60" value="25" class="w-full p-2 border rounded">
+            </div>
+            <div class="mb-4">
+                <label for="pomodoroNote" class="block mb-2">番茄钟记录：</label>
+                <input type="text" id="pomodoroNote" placeholder="输入这个番茄钟的记录" class="w-full p-2 border rounded">
+            </div>
+            <div class="mb-4">
+                <label for="taskSelect" class="block mb-2">选择任务：</label>
+                <select id="taskSelect" class="w-full p-2 border rounded"></select>
+            </div>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold mb-4">声音设置</h2>
+            <div class="mb-4">
+                <label for="startSound" class="block mb-2">开始声音：</label>
+                <input type="file" id="startSound" accept="audio/*" class="w-full p-2 border rounded">
+            </div>
+            <div class="mb-4">
+                <label for="endSound" class="block mb-2">结束声音：</label>
+                <input type="file" id="endSound" accept="audio/*" class="w-full p-2 border rounded">
+            </div>
+            <div class="mb-4">
+                <label for="tickSound" class="block mb-2">计时声音：</label>
+                <input type="file" id="tickSound" accept="audio/*" class="w-full p-2 border rounded">
+            </div>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold mb-4">任务列表</h2>
+            <div class="flex mb-4">
+                <input type="text" id="newTask" placeholder="新任务名称" class="flex-grow p-2 border rounded-l">
+                <button id="addTask" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-r">添加任务</button>
+            </div>
+            <ul id="taskList" class="list-disc pl-5"></ul>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold mb-4">任务时间分布</h2>
+            <canvas id="taskChart"></canvas>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <h2 class="text-2xl font-bold mb-4">完成的番茄钟</h2>
+            <ul id="pomodoroList" class="list-disc pl-5"></ul>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
