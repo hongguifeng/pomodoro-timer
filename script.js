@@ -12,7 +12,6 @@ let sounds = {
 
 const timerDisplay = document.getElementById('timer');
 const startButton = document.getElementById('startButton');
-const pauseButton = document.getElementById('pauseButton');
 const resetButton = document.getElementById('resetButton');
 const timerDurationInput = document.getElementById('timerDuration');
 const pomodoroNoteInput = document.getElementById('pomodoroNote');
@@ -95,17 +94,27 @@ function savePomodoroRecord() {
 
     updatePomodoroList();
     updateTaskList();
-    updateChart();
     pomodoroNoteInput.value = '';
 }
 
 function updatePomodoroList() {
-    pomodoroList.innerHTML = '';
-    pomodoroHistory.forEach((record, index) => {
-        const li = document.createElement('li');
+    pomodoroList.innerHTML = `
+        <div class="grid grid-cols-3 gap-4 font-bold mb-2">
+            <div>时间</div>
+            <div>关联任务</div>
+            <div>番茄钟记录</div>
+        </div>
+    `;
+    [...pomodoroHistory].reverse().forEach((record, index) => {
+        const row = document.createElement('div');
+        row.className = 'grid grid-cols-3 gap-4 mb-2 p-2 bg-gray-100 rounded';
         const task = tasks.find(t => t.id === record.taskId);
-        li.textContent = `#${index + 1}: ${record.startTime} - ${record.endTime} (${record.duration}分钟) ${task ? task.name : ''} ${record.note ? '- ' + record.note : ''}`;
-        pomodoroList.appendChild(li);
+        row.innerHTML = `
+            <div>${record.startTime} - ${record.endTime}</div>
+            <div>${task ? task.name : '无任务'}</div>
+            <div>${record.note || '无记录'}</div>
+        `;
+        pomodoroList.appendChild(row);
     });
 }
 
@@ -122,7 +131,6 @@ function addTask() {
         newTaskInput.value = '';
         updateTaskList();
         updateTaskSelect();
-        updateChart();
     }
 }
 
@@ -130,7 +138,13 @@ function updateTaskList() {
     taskList.innerHTML = '';
     tasks.forEach(task => {
         const li = document.createElement('li');
-        li.textContent = `${task.name} - 总计 ${task.totalPomodoros} 分钟`;
+        li.className = 'mb-4 p-4 bg-white shadow rounded';
+        const relatedPomodoros = pomodoroHistory.filter(p => p.taskId === task.id);
+        li.innerHTML = `
+            <h3 class="text-xl font-bold">${task.name}</h3>
+            <p>总计时间: ${task.totalPomodoros} 分钟</p>
+            <p>相关番茄钟: ${relatedPomodoros.length} 个</p>
+        `;
         taskList.appendChild(li);
     });
 }
@@ -157,53 +171,98 @@ function handleSoundUpload(event, soundType) {
     }
 }
 
-function updateChart() {
-    const ctx = document.getElementById('taskChart');
+function updateWeeklyChart() {
+    const ctx = document.getElementById('weeklyChart');
     if (!ctx) {
-        console.error('Cannot find canvas element with id "taskChart"');
+        console.error('Cannot find canvas element with id "weeklyChart"');
         return;
     }
 
     // Destroy existing chart if it exists
-    if (window.taskChart instanceof Chart) {
-        window.taskChart.destroy();
-    }
-    
-    // 计算每个任务的总时间
-    const taskTimes = tasks.map(task => ({
-        name: task.name,
-        time: task.totalPomodoros
-    }));
-
-    // 按时间降序排序
-    taskTimes.sort((a, b) => b.time - a.time);
-
-    // 取前5个任务，其他的归为"其他"
-    let chartData = taskTimes.slice(0, 5);
-    if (taskTimes.length > 5) {
-        const otherTime = taskTimes.slice(5).reduce((sum, task) => sum + task.time, 0);
-        chartData.push({ name: '其他', time: otherTime });
+    if (window.weeklyChart instanceof Chart) {
+        window.weeklyChart.destroy();
     }
 
-    window.taskChart = new Chart(ctx.getContext('2d'), {
-        type: 'pie',
+    const daysOfWeek = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const hoursOfDay = Array.from({length: 24}, (_, i) => i);
+
+    // 定义一个固定的颜色数组
+    const colors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', 
+        '#FF9F40', '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'
+    ];
+
+    // 为每个任务创建一个数据集
+    const datasets = tasks.map((task, index) => {
+        const color = colors[index % colors.length];
+        return {
+            label: task.name,
+            data: [],
+            backgroundColor: color,
+            borderColor: color,
+            borderWidth: 1
+        };
+    });
+
+    // 填充数据
+    pomodoroHistory.forEach(pomodoro => {
+        const startTime = new Date(pomodoro.startTime);
+        const endTime = new Date(pomodoro.endTime);
+        const dayIndex = startTime.getDay();
+        const hourIndex = startTime.getHours();
+        const taskIndex = tasks.findIndex(t => t.id === pomodoro.taskId);
+
+        if (taskIndex !== -1) {
+            datasets[taskIndex].data.push({
+                x: dayIndex,
+                y: hourIndex,
+                r: 5  // 圆点大小
+            });
+        }
+    });
+
+    window.weeklyChart = new Chart(ctx.getContext('2d'), {
+        type: 'bubble',
         data: {
-            labels: chartData.map(task => task.name),
-            datasets: [{
-                data: chartData.map(task => task.time),
-                backgroundColor: [
-                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
-                ]
-            }]
+            datasets: datasets
         },
         options: {
             responsive: true,
             title: {
                 display: true,
-                text: '任务时间分布'
+                text: '每周番茄钟分布'
+            },
+            scales: {
+                xAxes: [{
+                    type: 'linear',
+                    position: 'bottom',
+                    ticks: {
+                        min: 0,
+                        max: 6,
+                        stepSize: 1,
+                        callback: function(value) {
+                            return daysOfWeek[value];
+                        }
+                    }
+                }],
+                yAxes: [{
+                    ticks: {
+                        min: 0,
+                        max: 23,
+                        stepSize: 1,
+                        callback: function(value) {
+                            return value + '时';
+                        }
+                    }
+                }]
             }
         }
     });
+}
+
+// 在初始化和每次保存番茄钟记录后调用
+function updateAllCharts() {
+    updateWeeklyChart();
 }
 
 // Event Listeners
@@ -211,13 +270,13 @@ startButton.addEventListener('click', startTimer);
 resetButton.addEventListener('click', resetTimer);
 timerDurationInput.addEventListener('change', resetTimer);
 addTaskButton.addEventListener('click', addTask);
-taskSelect.addEventListener('change', (e) => currentTask = e.target.value);
+taskSelect.addEventListener("change", (e) => (currentTask = e.target.value));
 
 document.getElementById('startSound').addEventListener('change', (e) => handleSoundUpload(e, 'start'));
 document.getElementById('endSound').addEventListener('change', (e) => handleSoundUpload(e, 'end'));
 document.getElementById('tickSound').addEventListener('change', (e) => handleSoundUpload(e, 'tick'));
 
-// Initialization
+
 function init() {
     const savedDuration = localStorage.getItem('timerDuration');
     if (savedDuration) {
@@ -228,7 +287,7 @@ function init() {
     updatePomodoroList();
     updateTaskList();
     updateTaskSelect();
-    updateChart();
+    updateAllCharts();
 
     // Load saved sounds
     ['start', 'end', 'tick'].forEach(soundType => {
